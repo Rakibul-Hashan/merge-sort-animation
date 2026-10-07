@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Merge Sort Visualizer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600&display=swap" rel="stylesheet">
+<style>
+ body{font-family:Inter,'Noto Sans Bengali',system-ui,sans-serif;min-height:100vh;color:#e2e8f0;
+  background:radial-gradient(900px 500px at 15% -10%,#4c1d9566,transparent),radial-gradient(800px 500px at 100% 0%,#0e749066,transparent),#0b1020}
+ .glass{background:#ffffff0d;border:1px solid #ffffff1a;backdrop-filter:blur(14px);border-radius:1.25rem}
+ .card{position:absolute;left:0;top:0;display:flex;align-items:center;justify-content:center;font-weight:700;border-radius:.9rem;
+  border:1.5px solid #818cf855;background:linear-gradient(145deg,#312e81aa,#1e1b4baa);color:#fff;
+  transition:transform var(--dur,.7s) cubic-bezier(.34,1.2,.5,1),background .3s,border-color .3s,box-shadow .3s,opacity .3s}
+ .card i{position:absolute;right:5px;bottom:2px;font-size:9px;font-style:normal;opacity:.45;font-weight:400}
+ .card.lc{border-color:#22d3ee77}
+ .card.rc{border-color:#f472b6aa;background:linear-gradient(145deg,#831843aa,#500724aa)}
+ .card.dim{opacity:.35}
+ .card.act{border-color:#22d3ee;box-shadow:0 0 18px #22d3ee55}
+ .card.put{background:linear-gradient(145deg,#f59e0b,#b45309);border-color:#fcd34d;box-shadow:0 0 22px #f59e0b88}
+ .card.done{background:linear-gradient(145deg,#10b981,#047857);border-color:#6ee7b7;box-shadow:0 0 18px #10b98166}
+ .pop{animation:pop .45s ease}
+ @keyframes pop{0%{filter:brightness(2)}50%{scale:1.18}100%{scale:1}}
+ .card.empty{background:transparent;border:1.5px dashed #ffffff33;box-shadow:none}
+ .card.used{opacity:.3;text-decoration:line-through}
+ .ptr{position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:12px;font-weight:700;color:#22d3ee}
+ .btn{padding:.55rem .9rem;border-radius:.8rem;background:#ffffff12;border:1px solid #ffffff1f;transition:.15s}
+ .frame{position:absolute;left:0;top:0;border:1.5px solid #ffffff2e;border-radius:1rem;background:#ffffff08;pointer-events:none;transition:transform var(--dur,.7s) cubic-bezier(.34,1.2,.5,1),width var(--dur,.7s) ease,opacity .3s}
+ .frame b{position:absolute;left:10px;top:-9px;padding:0 7px;font-size:10px;font-weight:700;letter-spacing:.04em;border-radius:6px;background:#141a30;color:#94a3b8;white-space:nowrap}
+ .frame.L{border-color:#22d3ee88}.frame.L b{color:#67e8f9}
+ .frame.R{border-color:#f472b688}.frame.R b{color:#f9a8d4}
+ .frame.O{border-color:#fbbf2499}.frame.O b{color:#fcd34d}
+ .cmp{position:absolute;left:0;top:0;height:9px;border:2px solid #22d3ee;border-top:0;border-radius:0 0 9px 9px;pointer-events:none;z-index:3;transition:transform var(--dur,.7s) ease,width var(--dur,.7s) ease,opacity .3s}
+ .cmp span{position:absolute;left:50%;top:12px;transform:translateX(-50%);white-space:nowrap;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;background:#0e7490;color:#fff}
+ .btn:hover{background:#ffffff22}
+ .primary{background:linear-gradient(90deg,#7c3aed,#06b6d4);border:0;font-weight:600}
+ select,input{background:#0f172a;border:1px solid #ffffff22;border-radius:.8rem;padding:.55rem .8rem;color:#e2e8f0}
+ @media (prefers-reduced-motion:reduce){.card{transition:none}.pop{animation:none}}
+</style>
+</head>
+<body>
+<div class="max-w-3xl mx-auto p-4 space-y-4">
+
+  <header class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-cyan-300 bg-clip-text text-transparent" id="t-title">Merge Sort Visualizer</h1>
+    <button id="lang" class="btn text-sm">বাংলা</button>
+  </header>
+
+  <section class="glass p-4 space-y-2">
+    <label class="text-xs uppercase tracking-wider text-slate-400" id="t-approach">Approach</label>
+    <select id="approach" class="w-full">
+      <option value="temp">1. Recursive – temporary left/right arrays</option>
+      <option value="aux">2. Recursive – one reusable auxiliary array</option>
+      <option value="bu">3. Iterative – bottom-up (no recursion)</option>
+      <option value="opt">4. Recursive – optimized (skip merge if already in order)</option>
+      <option value="nat">5. Natural Merge Sort (use existing sorted runs)</option>
+      <option value="ll">6. Linked-list Merge Sort (relink nodes)</option>
+    </select>
+    <p id="purpose" class="text-sm text-slate-300"></p>
+    <p class="text-xs text-cyan-300/80" id="cx"></p>
+    <div id="viewbox" class="pt-2 space-y-1">
+      <label class="text-xs uppercase tracking-wider text-slate-400" id="t-view">Splitting view</label>
+      <select id="view" class="w-full"><option value="seq"></option><option value="conc"></option></select>
+      <p id="viewnote" class="text-xs text-slate-400"></p>
+    </div>
+  </section>
+
+  <section class="glass p-4 flex flex-wrap gap-2 items-center">
+    <input id="inp" class="flex-1 min-w-[10rem]" value="8, 3, 6, 2, 5, 7, 1, 4">
+    <button id="load" class="btn primary">Load</button>
+    <button id="rand" class="btn">Random</button>
+    <div id="pats" class="w-full flex flex-wrap gap-1.5"></div>
+    <p id="err" class="w-full text-sm text-rose-400"></p>
+  </section>
+
+  <section class="glass p-4 space-y-3">
+    <div class="flex justify-between items-center text-sm">
+      <span id="phase" class="font-semibold px-3 py-1 rounded-full bg-white/10"></span>
+      <span id="stepno" class="text-slate-400"></span>
+    </div>
+    <div id="stage" class="relative w-full overflow-x-auto overflow-y-hidden"></div>
+    <div id="auxwrap" class="hidden">
+      <p class="text-xs text-slate-400 text-center mb-1" id="t-aux">Auxiliary array</p>
+      <div id="aux" class="flex flex-wrap gap-1.5 justify-center"></div>
+    </div>
+    <input id="seek" type="range" min="0" value="0" class="w-full accent-cyan-400" aria-label="Step">
+    <p id="msg" class="text-center min-h-[3rem] text-base text-slate-100"></p>
+    <div class="flex flex-wrap gap-2 justify-center items-center">
+      <button id="restart" class="btn" title="Restart">⏮</button>
+      <button id="prev" class="btn" title="Previous">◀</button>
+      <button id="play" class="btn primary w-28">▶ Play</button>
+      <button id="next" class="btn" title="Next">▶|</button>
+      <select id="speed" class="text-sm">
+        <option value="2000">Very slow</option>
+        <option value="1000" selected>Slow</option>
+        <option value="450">Normal</option>
+        <option value="150">Fast</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="glass p-4">
+    <h2 class="text-xs uppercase tracking-wider text-slate-400 mb-2" id="t-counts">Operation counts</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-sm" id="counts"></div>
+    <p class="text-xs text-slate-400 mt-2" id="t-note"></p>
+  </section>
+
+  <section class="glass p-4 space-y-2">
+    <h2 id="t-cmp" class="text-xs uppercase tracking-wider text-slate-400">Compare two approaches (same input)</h2>
+    <div class="grid grid-cols-2 gap-2"><select id="cmpA"></select><select id="cmpB"></select></div>
+    <div class="flex items-center gap-2 text-sm"><input type="checkbox" id="predOn" checked style="padding:0;width:1rem;height:1rem;accent-color:#7c3aed"><label for="predOn" id="t-predOn">Prediction mode</label></div>
+    <div id="predBox" class="space-y-2">
+      <p id="predQ" class="text-sm"></p>
+      <div id="predBtns" class="flex flex-wrap gap-2"></div>
+      <p id="predFb" class="text-sm text-slate-200"></p>
+    </div>
+    <div id="cmpTbl" class="overflow-x-auto transition"></div>
+    <p id="cmpNote" class="text-xs text-slate-400"></p>
+  </section>
+
+  <details class="glass p-4">
+    <summary id="t-why" class="cursor-pointer text-sm font-semibold">Why do we split?</summary>
+    <p id="why" class="text-sm text-slate-300 mt-2"></p>
+  </details>
+
+  <details class="glass p-4">
+    <summary class="cursor-pointer text-sm font-semibold">Changelog</summary>
+    <ul class="text-sm list-disc pl-5 mt-2 space-y-1 text-slate-300">
+      <li><b>v0.14</b> – New approach 6: Linked-list Merge Sort. Merges by relinking nodes: 0 array writes, 0 allocations, and the leftover list is attached with one link change. New “Link changes” counter (0 for array approaches).</li>
+      <li><b>v0.13</b> – Prediction exercise in the comparison panel: guess which approach does fewer writes (or “Same”) before the table is revealed. Prediction mode can be switched off.</li>
+      <li><b>v0.12</b> – Input pattern buttons: Sorted, Reversed, Random, Duplicates, Nearly sorted (8 numbers). Click one, then watch the animation and the comparison table change.</li>
+      <li><b>v0.11</b> – Same-input comparison: pick any two approaches and see their operation counts side by side for the current input (fewer operations highlighted in green).</li>
+      <li><b>v0.10</b> – New approach 5: Natural Merge Sort. One scan finds existing sorted runs (shown as separate lists), then runs are merged pass by pass. Sorted input needs only n−1 comparisons and 0 writes.</li>
+      <li><b>v0.9</b> – New approach 4: Optimized recursive Merge Sort. Checks <code>arr[mid] ≤ arr[mid+1]</code> before each merge and skips it when already in order (counts as 1 comparison). Try a sorted input to see 0 writes.</li>
+      <li><b>v0.8</b> – New “Splitting view” option for recursive approaches: <i>Concurrent</i> (all groups at a level divide together, then merge level by level) alongside the original <i>Sequential</i> real-recursion order. Counts are identical in both.</li>
+      <li><b>v0.7</b> – New approach 3: Iterative bottom-up Merge Sort. Starts with every number as its own list, then merges pass by pass (1→2→4→8…). No splitting, no recursion (max depth 0), shares one buffer.</li>
+      <li><b>v0.6</b> – Step slider: drag to jump to any step directly (works with Play, ◀ ▶| and arrow keys).</li>
+      <li><b>v0.5</b> – Every list is now drawn as its own box (LEFT LIST / RIGHT LIST / OUTPUT). Each comparison is a separate step with a bracket joining the front of the left list to the front of the right list, then a second step takes the smaller one. Left and right items have different colours. “Why do we split?” text corrected: comparisons happen only between two different lists.</li>
+      <li><b>v0.4</b> – Merge now shows two separate lists (left, right) with i/j pointers on their front values, and a separate output row where chosen values are placed. Added a “Why do we split?” note (EN/বাংলা).</li>
+      <li><b>v0.3</b> – Split animation: the array now divides and drops down level by level (and rises back up when merging) instead of blurring. New sleek dark glass UI.</li>
+      <li><b>v0.2</b> – Approaches: basic recursive (temp arrays) and reusable auxiliary array, with operation counts.</li>
+      <li><b>v0.1</b> – Base: custom/random input, play/pause/prev/next/restart, speed, phase label, step text, English/বাংলা.</li>
+    </ul>
+  </details>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+let lang='en', steps=[], idx=0, timer=null, cards=[], outs=[], curV=[], pick=null, S_=52, GAP=22, ROW=74, TOP=24, XS=[], OX=[], frames=[], oframe=null, cmpEl=null;
+
+const T={
+ en:{title:'Merge Sort Visualizer',approach:'Approach',load:'Load',rand:'Random',aux:'Auxiliary array',counts:'Operation counts (so far / total)',
+  note:'Counts measure work, not speed. Both approaches are Θ(n log n); they differ in writes and allocations.',
+  play:'▶ Play',pause:'⏸ Pause',step:'Step',
+  phase:{start:'Start',split:'Splitting',merge:'Merging',done:'Finished'},
+  c:{cmp:'Comparisons',wr:'Writes',alloc:'Allocations',depth:'Max depth',links:'Link changes'},
+  predOn:'Prediction mode',predQ:'Before you look: which approach does fewer WRITES on this input?',same:'Same',right:'✅ Correct!',wrong:'❌ Not quite.',fb:(x,p,y,q)=>`${x}: ${p} writes · ${y}: ${q} writes.`,
+  pat:{sorted:'Sorted',rev:'Reversed',rand:'Random',dup:'Duplicates',part:'Nearly sorted'},
+  cmpT:'Compare two approaches (same input)',cmpNote:'Green = fewer operations for this input. Counts measure work, not running time.',
+  viewT:'Splitting view',seq:'Sequential – real recursion order (left half first)',conc:'Concurrent – all groups divide level by level',viewNote:'Display order only: groups at the same level divide together, then merge level by level. Normal recursive code does the left half first, then the right. Truly simultaneous work needs a parallel implementation. Operation counts stay the same.',
+  whyT:'Why do we split?',why:'In the merge step we only ever compare numbers from two DIFFERENT lists: the front of the LEFT list against the front of the RIGHT list. We never compare two numbers inside the same list, because each list is already sorted, so its front is its smallest. To get sorted lists in the first place, we split until every list holds a single number (one number is trivially sorted), then merge back up. (Algorithms like Bubble Sort compare inside one list; Merge Sort does not.)',
+  lbl:{L:'LEFT LIST',R:'RIGHT LIST',O:'OUTPUT (sorted)'},
+  err:'Enter 2–12 whole numbers separated by commas.',
+  purpose:{temp:'Easiest start: every merge makes two new small arrays (left and right) and merges them back. Clear, but allocates a lot.',
+           aux:'One extra array is created once and reused by every merge. Same result, far fewer allocations.',
+           bu:'Same merging, but no recursion: first merge lists of size 1 into size 2, then 2 into 4, then 4 into 8… one pass at a time. No function calls, no call stack.',
+           opt:'Same as approach 2, plus one cheap check before every merge: if the last of the left list ≤ the first of the right list, they are already in order, so skip the merge. Great on sorted or nearly sorted data.',
+           nat:'Instead of starting from single numbers, scan once and find stretches that are already in order (natural runs), then merge those runs pass by pass. The more ordered the input, the fewer runs and the less work.',
+           ll:'Sorting a linked list: merge by changing links instead of copying values. No auxiliary array, and attaching the leftover list costs just one link change. Shows how the data structure changes the implementation and the memory use.'},
+  cx:{temp:'Time Θ(n log n) in all cases · Extra space Θ(n) · new arrays created on every merge',
+      aux:'Time Θ(n log n) in all cases · Extra space Θ(n) · one buffer allocated once',
+      bu:'Time Θ(n log n) in all cases · Extra space Θ(n) (one buffer) · no recursion, max depth 0',
+      opt:'Best case Θ(n) (already sorted) · average/worst Θ(n log n) · Extra space Θ(n)',
+      nat:'Best case Θ(n) (already sorted) · worst Θ(n log n) · Extra space Θ(n) · no recursion',
+      ll:'Time Θ(n log n) · Extra space Θ(log n) for recursion (O(1) if iterative) · 0 array writes, 0 allocations'}},
+ bn:{title:'মার্জ সর্ট ভিজুয়ালাইজার',approach:'পদ্ধতি',load:'লোড',rand:'এলোমেলো',aux:'সহায়ক অ্যারে (auxiliary)',counts:'কাজের হিসাব (এখন পর্যন্ত / মোট)',
+  note:'এই সংখ্যা কাজের পরিমাণ বোঝায়, গতি নয়। দুই পদ্ধতিই Θ(n log n); পার্থক্য লেখা (write) ও অ্যালোকেশনে।',
+  play:'▶ চালাও',pause:'⏸ থামাও',step:'ধাপ',
+  phase:{start:'শুরু',split:'ভাগ করা',merge:'মেশানো',done:'শেষ'},
+  c:{cmp:'তুলনা',wr:'লেখা (write)',alloc:'অ্যালোকেশন',depth:'সর্বোচ্চ গভীরতা',links:'লিংক পরিবর্তন'},
+  predOn:'অনুমান মোড',predQ:'দেখার আগে অনুমান করো: এই ইনপুটে কোন পদ্ধতিতে লেখা (write) কম হবে?',same:'সমান',right:'✅ ঠিক!',wrong:'❌ ঠিক হয়নি।',fb:(x,p,y,q)=>`${x}: ${p}টি লেখা · ${y}: ${q}টি লেখা।`,
+  pat:{sorted:'সাজানো',rev:'উল্টো',rand:'এলোমেলো',dup:'ডুপ্লিকেট',part:'প্রায় সাজানো'},
+  cmpT:'দুটি পদ্ধতির তুলনা (একই ইনপুট)',cmpNote:'সবুজ = এই ইনপুটে কম অপারেশন। সংখ্যাগুলো কাজের পরিমাণ বোঝায়, চলার সময় নয়।',
+  viewT:'ভাগ করার দৃশ্য',seq:'ক্রমানুসারে – আসল রিকার্শন ক্রম (আগে বাম অংশ)',conc:'একসাথে – সব গ্রুপ লেভেল ধরে ভাগ হয়',viewNote:'এটি শুধু দেখানোর ক্রম: একই লেভেলের গ্রুপগুলো একসাথে ভাগ হয়, তারপর লেভেল ধরে মেশে। সাধারণ রিকার্শন কোড আগে বাম, পরে ডান অংশ করে। সত্যিকারের একসাথে কাজ করতে প্যারালাল ইমপ্লিমেন্টেশন লাগে। কাজের হিসাব একই থাকে।',
+  whyT:'কেন ভাগ করি?',why:'মার্জ করার সময় আমরা সবসময় দুটি আলাদা লিস্টের সংখ্যা তুলনা করি: বাম লিস্টের সামনের সংখ্যা বনাম ডান লিস্টের সামনের সংখ্যা। একই লিস্টের ভেতরে দুটি সংখ্যা তুলনা করি না, কারণ প্রতিটি লিস্ট আগে থেকেই সাজানো — তার সামনের সংখ্যাটাই সবচেয়ে ছোট। সাজানো লিস্ট পেতে আমরা ভাগ করতে করতে প্রতিটি লিস্টে একটি করে সংখ্যায় আনি (একটি সংখ্যা নিজেই সাজানো), তারপর উল্টো দিকে মেশাই। (Bubble Sort-এর মতো অ্যালগরিদম একই লিস্টে তুলনা করে; Merge Sort করে না।)',
+  lbl:{L:'বাম লিস্ট',R:'ডান লিস্ট',O:'আউটপুট (সাজানো)'},
+  err:'২–১২টি পূর্ণসংখ্যা কমা দিয়ে লিখুন।',
+  purpose:{temp:'সবচেয়ে সহজ শুরু: প্রতিবার মেশানোর সময় বাম ও ডান দুটো নতুন ছোট অ্যারে বানানো হয়। বোঝা সহজ, কিন্তু অনেক অ্যারে তৈরি হয়।',
+           aux:'একটি বাড়তি অ্যারে একবারই বানিয়ে প্রতিবার ব্যবহার করা হয়। ফল একই, অ্যালোকেশন অনেক কম।',
+           bu:'মেশানো একই, কিন্তু রিকার্শন নেই: প্রথমে ১+১ মিশিয়ে ২, তারপর ২+২ মিশিয়ে ৪, তারপর ৪+৪ মিশিয়ে ৮… এক এক পাসে। ফাংশন-কল বা কল স্ট্যাক লাগে না।',
+           opt:'পদ্ধতি ২-এর মতোই, কিন্তু প্রতিবার মেশানোর আগে একটি সস্তা পরীক্ষা: বাম লিস্টের শেষ ≤ ডান লিস্টের প্রথম হলে দুটো আগে থেকেই ঠিক ক্রমে, তাই মেশানো বাদ। সাজানো বা প্রায় সাজানো ডেটায় দারুণ।',
+           nat:'একটি করে সংখ্যা থেকে শুরু না করে, একবার স্ক্যান করে আগে থেকেই ঠিক ক্রমে থাকা অংশ (natural run) খুঁজে নিই, তারপর সেগুলো পাস ধরে মেশাই। ডেটা যত গোছানো, রান তত কম, কাজও তত কম।',
+           ll:'লিংকড লিস্ট সাজানো: মান কপি না করে লিংক বদলে মেশানো হয়। বাড়তি অ্যারে লাগে না, আর বাকি অংশ জুড়তে মাত্র ১টি লিংক বদলাতে হয়। ডেটা স্ট্রাকচার বদলালে ইমপ্লিমেন্টেশন ও মেমোরি কীভাবে বদলায়, এটি তা শেখায়।'},
+  cx:{temp:'সময় সব ক্ষেত্রে Θ(n log n) · বাড়তি জায়গা Θ(n) · প্রতি মেশানোয় নতুন অ্যারে',
+      aux:'সময় সব ক্ষেত্রে Θ(n log n) · বাড়তি জায়গা Θ(n) · একটি বাফার একবারই',
+      bu:'সময় সব ক্ষেত্রে Θ(n log n) · বাড়তি জায়গা Θ(n) (একটি বাফার) · রিকার্শন নেই, গভীরতা ০',
+      opt:'সবচেয়ে ভালো ক্ষেত্রে Θ(n) (আগে থেকে সাজানো) · গড়/সবচেয়ে খারাপ Θ(n log n) · বাড়তি জায়গা Θ(n)',
+      nat:'সবচেয়ে ভালো ক্ষেত্রে Θ(n) (আগে থেকে সাজানো) · সবচেয়ে খারাপ Θ(n log n) · বাড়তি জায়গা Θ(n) · রিকার্শন নেই',
+      ll:'সময় Θ(n log n) · বাড়তি জায়গা Θ(log n) রিকার্শনের জন্য (iterative হলে O(1)) · অ্যারেতে লেখা ০, অ্যালোকেশন ০'}}
+};
+const tr=()=>T[lang];
+const M=(en,bn)=>({en,bn});
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+
+/* ---- algorithm runner: records steps (values + tree level + cuts) ---- */
+function run(input, mode, view){
+  const a=input.slice(), n=a.length, S=[], c={cmp:0,wr:0,alloc:0,depth:0,links:0};
+  const lvl=new Array(n).fill(0), cut=new Array(n).fill(false);
+  let aux=null, cur=0;
+  const snap=(phase,m,o={})=>S.push({a:a.slice(),lvl:lvl.slice(),cut:cut.slice(),aux:o.aux?o.aux.slice():null,phase,m,lo:o.lo??-1,hi:o.hi??-1,hl:o.hl||[],ahl:o.ahl||[],src:o.src||null,out:o.out?o.out.slice():null,pi:o.pi??-1,pj:o.pj??-1,mid:o.mid??-1,cp:o.cp||null,c:{...c}});
+  if(mode!=='temp'&&mode!=='ll'){aux=new Array(n).fill(null);c.alloc++;}
+  const maxL=Math.ceil(Math.log2(n));
+  if(mode==='bu'){lvl.fill(maxL);cut.fill(true);cut[n-1]=false;}
+  const runs=[];
+  if(mode==='nat'){
+    let s0=0;for(let i=1;i<=n;i++){if(i===n||a[i-1]>a[i]){runs.push([s0,i-1]);s0=i;}}
+    c.cmp+=n-1;lvl.fill(Math.ceil(Math.log2(runs.length)));
+    runs.forEach((r,q)=>{if(q<runs.length-1)cut[r[1]]=true;});
+  }
+  snap('start',M(`Start with ${n} numbers.`,`${n}টি সংখ্যা নিয়ে শুরু।`),{aux});
+  function merge(lo,mid,hi){
+    let L,R,i,j,k=lo;
+    const src=a.slice(), out=new Array(n).fill(null);
+    const P=(m,hl,o={})=>snap('merge',m,{lo,hi,mid,src,out,hl,pi:o.pi,pj:o.pj,aux:o.aux,ahl:o.ahl,cp:o.cp});
+    const put=(v,m,pi,pj)=>{a[k]=v;out[k]=v;mode==='ll'?c.links++:c.wr++;P(m,[k],{pi,pj,aux});k++;};
+    const cmpStep=(ii,jj,x,y,left)=>P(M(`Compare front of left (${x}) with front of right (${y}): ${left?x+' ≤ '+y+' → left is smaller or equal':y+' < '+x+' → right is smaller'}.`,`বাম সামনের (${x}) ও ডান সামনের (${y}) তুলনা: ${left?x+' ≤ '+y+' → বাম ছোট বা সমান':y+' < '+x+' → ডান ছোট'}।`),[],{pi:ii,pj:jj,aux,cp:[ii,jj,x,y,left]});
+    let skip=false;
+    if(mode==='opt'){c.cmp++;const x=a[mid],y=a[mid+1];skip=x<=y;
+      P(M(`Check first: last of left (${x}) ≤ first of right (${y})? ${skip?'Yes → already in order, skip the merge!':'No → the lists overlap, a merge is needed.'}`,`আগে দেখি: বাম শেষ (${x}) ≤ ডান প্রথম (${y})? ${skip?'হ্যাঁ → আগে থেকেই ঠিক ক্রমে, মেশানো লাগবে না!':'না → মেশানো দরকার।'}`),[],{pi:mid,pj:mid+1,aux});}
+    if(!skip){
+    if(mode==='ll'){
+      L=a.slice(lo,mid+1);R=a.slice(mid+1,hi+1);
+      P(M(`Merge the LEFT list [${lo}..${mid}] and the RIGHT list [${mid+1}..${hi}] by relinking nodes. No temp arrays, no copying.`,`বাম লিস্ট [${lo}..${mid}] ও ডান লিস্ট [${mid+1}..${hi}] মেশাই নোডের লিংক বদলে। অস্থায়ী অ্যারে বা কপি নেই।`),[],{pi:lo,pj:mid+1});
+      i=0;j=0;
+      while(i<L.length&&j<R.length){
+        c.cmp++;const left=L[i]<=R[j],x=L[i],y=R[j];
+        cmpStep(lo+i,mid+1+j,x,y,left);
+        const v=left?L[i++]:R[j++];
+        put(v,M(`Link the smaller node (${v}) to the end of the output list (1 link change).`,`ছোট নোড (${v}) আউটপুট লিস্টের শেষে জোড়া লাগাই (১টি লিংক পরিবর্তন)।`),lo+i,mid+1+j);
+      }
+      const fromL=i<L.length, rest=fromL?L.slice(i):R.slice(j);
+      if(rest.length){
+        const k0=k;rest.forEach(v=>{a[k]=v;out[k]=v;k++;});c.links++;
+        P(M(`The ${fromL?'right':'left'} list is empty. Link the whole rest of the ${fromL?'left':'right'} list [${rest}] with ONE link change, no copying.`,`${fromL?'ডান':'বাম'} লিস্ট শেষ। ${fromL?'বাম':'ডান'} লিস্টের বাকি অংশ [${rest}] একটিমাত্র লিংক পরিবর্তনে জুড়ে দিই, কপি ছাড়াই।`),range(k0,k-1),{pi:mid+1,pj:hi+1});
+      }
+    }else if(mode==='temp'){
+      L=a.slice(lo,mid+1);R=a.slice(mid+1,hi+1);c.alloc+=2;c.wr+=hi-lo+1;
+      P(M(`Merge the LEFT list [${lo}..${mid}] and the RIGHT list [${mid+1}..${hi}]: create temp arrays L=[${L}] and R=[${R}].`,`বাম লিস্ট [${lo}..${mid}] ও ডান লিস্ট [${mid+1}..${hi}] মেশাই: অস্থায়ী অ্যারে L=[${L}], R=[${R}] বানাই।`),[],{pi:lo,pj:mid+1});
+      i=0;j=0;
+      while(i<L.length&&j<R.length){
+        c.cmp++;const x=L[i],y=R[j],left=x<=y;
+        cmpStep(lo+i,mid+1+j,x,y,left);
+        const v=left?L[i++]:R[j++];
+        put(v,M(`Take the smaller one, ${v}, and put it in output position ${k}.`,`ছোটটা (${v}) নিয়ে আউটপুটের ${k} নম্বর ঘরে রাখি।`),lo+i,mid+1+j);
+      }
+      while(i<L.length){const v=L[i++];put(v,M(`Right list is empty. Copy leftover ${v} from the left list.`,`ডান লিস্ট শেষ। বাম লিস্ট থেকে বাকি ${v} কপি করি।`),lo+i,mid+1+j);}
+      while(j<R.length){const v=R[j++];put(v,M(`Left list is empty. Copy leftover ${v} from the right list.`,`বাম লিস্ট শেষ। ডান লিস্ট থেকে বাকি ${v} কপি করি।`),lo+i,mid+1+j);}
+    }else{
+      for(let x=lo;x<=hi;x++){aux[x]=a[x];c.wr++;}
+      P(M(`Merge the LEFT list [${lo}..${mid}] and the RIGHT list [${mid+1}..${hi}]: copy this range into the reusable buffer.`,`বাম লিস্ট [${lo}..${mid}] ও ডান লিস্ট [${mid+1}..${hi}] মেশাই: এই অংশ বাফারে কপি করি।`),[],{pi:lo,pj:mid+1,aux,ahl:range(lo,hi)});
+      i=lo;j=mid+1;
+      while(i<=mid&&j<=hi){
+        c.cmp++;const x=aux[i],y=aux[j],left=x<=y;
+        cmpStep(i,j,x,y,left);
+        const v=left?aux[i++]:aux[j++];
+        put(v,M(`Take the smaller one, ${v}, and put it in output position ${k}.`,`ছোটটা (${v}) নিয়ে আউটপুটের ${k} নম্বর ঘরে রাখি।`),i,j);
+      }
+      while(i<=mid){const v=aux[i++];put(v,M(`Right list is empty. Copy leftover ${v} from the left list.`,`ডান লিস্ট শেষ। বাম লিস্ট থেকে বাকি ${v} কপি করি।`),i,j);}
+      while(j<=hi){const v=aux[j++];put(v,M(`Left list is empty. Copy leftover ${v} from the right list.`,`বাম লিস্ট শেষ। ডান লিস্ট থেকে বাকি ${v} কপি করি।`),i,j);}
+    }
+    }
+    cut[mid]=false;for(let x=lo;x<=hi;x++)lvl[x]=cur-1;
+    snap('merge',M(`Range [${lo}..${hi}] is now one sorted list.`,`[${lo}..${hi}] অংশ এখন একটি সাজানো লিস্ট।`),{lo,hi,hl:range(lo,hi),aux});
+  }
+  function ms(lo,hi){
+    cur++;c.depth=Math.max(c.depth,cur);
+    if(lo<hi){
+      const mid=(lo+hi)>>1;
+      cut[mid]=true;if(mode==='ll')c.links++;for(let x=lo;x<=hi;x++)lvl[x]=cur;
+      snap('split',M(`Split [${lo}..${hi}] at middle ${mid} → [${lo}..${mid}] and [${mid+1}..${hi}].`,`[${lo}..${hi}] কে মাঝখানে (${mid}) ভাগ করি → [${lo}..${mid}] ও [${mid+1}..${hi}]।`),{lo,hi,mid,aux});
+      ms(lo,mid);ms(mid+1,hi);merge(lo,mid,hi);
+    }else snap('split',M(`One element at ${lo}: already sorted (base case).`,`${lo} নম্বরে একটিই সংখ্যা: আগে থেকেই সাজানো (base case)।`),{lo,hi,hl:[lo],aux});
+    cur--;
+  }
+  function natRun(){
+    const txt=runs.map(r=>'['+a.slice(r[0],r[1]+1).join(', ')+']').join(' '), r1=runs.length===1;
+    snap('start',M(`Scan once (${n-1} comparisons): found ${runs.length} natural run${r1?'':'s'}, stretches already in order: ${txt}${r1?'. The whole array is already sorted, nothing to merge!':''}`,`একবার স্ক্যান (${n-1}টি তুলনা): ${runs.length}টি প্রাকৃতিক রান পাওয়া গেল, যেসব অংশ আগে থেকেই ঠিক ক্রমে: ${txt}${r1?'। পুরো অ্যারে আগে থেকেই সাজানো, মেশানোর কিছু নেই!':''}`),{aux});
+    let cr=runs;
+    for(let L=Math.ceil(Math.log2(cr.length))-1;cr.length>1;L--){
+      const nx=[];
+      for(let q=0;q<cr.length;q+=2){
+        if(q+1<cr.length){const lo=cr[q][0],mid=cr[q][1],hi=cr[q+1][1];cur=L+1;merge(lo,mid,hi);nx.push([lo,hi]);}
+        else{for(let x=cr[q][0];x<=cr[q][1];x++)lvl[x]=L;nx.push(cr[q]);}
+      }
+      cr=nx;
+      snap('merge',M(`Pass done: ${cr.length} list${cr.length>1?'s':''} left.`,`পাস শেষ: ${cr.length}টি লিস্ট বাকি।`),{aux});
+    }
+  }
+  function concRun(){
+    let groups=[[0,n-1]], d=0; const by=[];
+    while(groups.some(g=>g[0]<g[1])){
+      const next=[], mids=[], sp=[];
+      for(const [lo,hi] of groups){
+        c.depth=Math.max(c.depth,d+1);
+        if(lo<hi){const mid=(lo+hi)>>1;cut[mid]=true;if(mode==='ll')c.links++;for(let x=lo;x<=hi;x++)lvl[x]=d+1;mids.push(mid);sp.push([lo,mid,hi]);next.push([lo,mid],[mid+1,hi]);}
+        else next.push([lo,hi]);
+      }
+      by[d]=sp;d++;groups=next;
+      snap('split',M(`Level ${d}: every group divides at the same time, at its middle.`,`লেভেল ${d}: প্রতিটি গ্রুপ একই সময়ে নিজের মাঝখানে ভাগ হলো।`),{hl:mids,aux});
+    }
+    c.depth=Math.max(c.depth,d+1);
+    snap('split',M('Every group now has one number (base case): already sorted.','এখন প্রতিটি গ্রুপে একটি করে সংখ্যা (base case): আগে থেকেই সাজানো।'),{hl:range(0,n-1),aux});
+    for(let q=d-1;q>=0;q--){
+      for(const [lo,mid,hi] of by[q]){cur=q+1;merge(lo,mid,hi);}
+      snap('merge',M(`Level ${q} done: every pair of lists at this level is merged.`,`লেভেল ${q} শেষ: এই লেভেলের সব জোড়া মেশানো হলো।`),{aux});
+    }
+  }
+  if(mode==='bu'){
+    snap('start',M('No splitting needed: every number is already a sorted list of size 1. We only merge, pass by pass.','ভাগ করার দরকার নেই: প্রতিটি সংখ্যা নিজেই size-১ সাজানো লিস্ট। শুধু পাস ধরে ধরে মেশাই।'),{aux});
+    for(let w=1,L=maxL-1;w<n;w*=2,L--){
+      let lo=0;
+      for(;lo+w<n;lo+=2*w){cur=L+1;merge(lo,lo+w-1,Math.min(lo+2*w-1,n-1));}
+      for(let x=lo;x<n;x++)lvl[x]=L;
+      snap('merge',M(`Pass done: lists of size ${w} merged into lists of size ${2*w}.`,`পাস শেষ: size ${w} এর লিস্ট মিশিয়ে size ${2*w} এর লিস্ট হলো।`),{aux});
+    }
+  }else if(mode==='nat')natRun();else if(view==='conc')concRun();else ms(0,n-1);
+  snap('done',M('Sorted!','সাজানো শেষ!'),{aux});
+  return S;
+}
+
+/* ---- stage: persistent cards that glide between tree levels ---- */
+function build(){
+  const st=$('stage');st.innerHTML='';cards=[];outs=[];
+  if(!steps.length)return;
+  const n=steps[0].a.length, cw=st.clientWidth||600;
+  S_=Math.max(20,Math.min(52,Math.floor((cw-8-(n-1)*GAP)/n)-6));
+  ROW=S_+40;
+  const maxL=Math.max(...steps[0].lvl,steps[steps.length-1].c.depth-1);
+  st.style.height=(TOP+maxL*ROW+S_+60)+'px';
+  frames=[];
+  for(let i=0;i<n;i++){const f=document.createElement('div');f.className='frame';f.innerHTML='<b></b>';f.style.opacity=0;st.appendChild(f);frames.push(f);}
+  oframe=document.createElement('div');oframe.className='frame O';oframe.innerHTML='<b></b>';oframe.style.opacity=0;st.appendChild(oframe);
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');d.className='card';
+    d.style.width=d.style.height=S_+'px';d.style.fontSize=(S_*.4)+'px';
+    d.innerHTML='<span></span><i>'+i+'</i><b class="ptr"></b>';st.appendChild(d);cards.push(d);
+    const o=d.cloneNode(false);o.className='card empty';o.style.opacity=0;o.innerHTML='<span></span>';st.appendChild(o);outs.push(o);
+  }
+  cmpEl=document.createElement('div');cmpEl.className='cmp';cmpEl.innerHTML='<span></span>';cmpEl.style.opacity=0;st.appendChild(cmpEl);
+}
+function layout(s){
+  const n=cards.length, cw=$('stage').clientWidth, step=S_+6;
+  let cuts=s.cut.filter(Boolean).length, total=n*step-6+cuts*GAP, off=Math.max(0,(cw-total)/2), cb=0, ob=0;
+  for(let i=0;i<n;i++){
+    XS[i]=off+i*step+cb*GAP;OX[i]=off+i*step+ob*GAP;
+    cards[i].style.transform=`translate(${XS[i]}px,${TOP+s.lvl[i]*ROW}px)`;
+    outs[i].style.transform=`translate(${OX[i]}px,${TOP+(s.src?s.lvl[s.lo]-1:0)*ROW}px)`;
+    if(s.cut[i]){cb++;if(!(s.src&&i===s.mid))ob++;}
+  }
+  /* one visible box per separate list (a list = run of cards with no cut between them) */
+  const lb=tr().lbl;
+  for(let i=0;i<n;i++){const f=frames[i];f.style.opacity=0;f.style.width=(S_+12)+'px';f.style.height=(S_+12)+'px';f.style.transform=`translate(${XS[i]-6}px,${TOP+s.lvl[i]*ROW-6}px)`;}
+  for(let i=0,j;i<n;i=j+1){
+    j=i;while(j+1<n&&!s.cut[j]&&s.lvl[j+1]===s.lvl[i])j++;
+    const f=frames[i],lab=(s.mid>=0&&i===s.lo&&j===s.mid)?'L':(s.mid>=0&&i===s.mid+1&&j===s.hi)?'R':'';
+    f.className='frame'+(lab?' '+lab:'');f.firstChild.textContent=lab?lb[lab]:'';
+    f.style.width=(XS[j]+S_-XS[i]+12)+'px';f.style.opacity=1;
+  }
+  if(s.src){
+    oframe.style.transform=`translate(${OX[s.lo]-6}px,${TOP+(s.lvl[s.lo]-1)*ROW-6}px)`;
+    oframe.style.width=(OX[s.hi]+S_-OX[s.lo]+12)+'px';oframe.style.height=(S_+12)+'px';
+    oframe.firstChild.textContent=lb.O;oframe.style.opacity=1;
+  }else oframe.style.opacity=0;
+}
+function render(){
+  if(!steps.length)return;
+  const s=steps[idx],t=tr(),tot=steps[steps.length-1].c;
+  $('stage').style.setProperty('--dur',Math.min(.8,+$('speed').value/1000*.7)+'s');
+  layout(s);
+  if(s.cp){const[ii,jj,x,y,lf]=s.cp;
+    cmpEl.style.transform=`translate(${XS[ii]+S_/2}px,${TOP+s.lvl[ii]*ROW+S_+20}px)`;
+    cmpEl.style.width=(XS[jj]-XS[ii])+'px';cmpEl.firstChild.textContent=`${x} ${lf?'≤':'>'} ${y}`;cmpEl.style.opacity=1;
+  }else cmpEl.style.opacity=0;
+  const vals=s.src||s.a;
+  cards.forEach((d,i)=>{
+    const sp=d.firstChild, v=String(vals[i]);
+    let pop=false;
+    if(sp.textContent!==v){sp.textContent=v;pop=true;}
+    const inR=s.lo<0||(i>=s.lo&&i<=s.hi);
+    let cl='';
+    if(s.phase==='done')cl=' done';
+    else if(s.src){
+      if(inR){const Lf=i<=s.mid,used=Lf?i<s.pi:i<s.pj;cl=(used?' used':((Lf&&i===s.pi)||(!Lf&&i===s.pj))?' act':'')+(Lf?' lc':' rc');}
+      else cl=' dim';
+    }else cl=s.hl.includes(i)?(s.phase==='merge'?' put':' act'):!inR?' dim':'';
+    d.className='card'+cl+(pop?' pop':'');
+    d.lastChild.textContent=(s.src&&inR&&!(cl===' used'))?((i<=s.mid&&i===s.pi)?'i':(i>s.mid&&i===s.pj)?'j':''):'';
+  });
+  outs.forEach((d,i)=>{
+    const show=!!s.src&&i>=s.lo&&i<=s.hi, v=show&&s.out[i]!=null;
+    d.firstChild.textContent=v?s.out[i]:'';
+    d.className='card'+(!v?' empty':s.hl.includes(i)?' put':' done');
+    d.style.opacity=show?1:0;
+  });
+  const useAux=!['temp','ll'].includes($('approach').value);
+  $('auxwrap').classList.toggle('hidden',!useAux);
+  if(useAux&&s.aux)$('aux').innerHTML=s.aux.map((v,i)=>`<div class="w-9 h-9 flex items-center justify-center rounded-lg border text-sm ${s.ahl.includes(i)?'bg-sky-500/30 border-sky-400':'bg-white/5 border-white/15'}">${v??''}</div>`).join('');
+  const pc={start:'bg-white/10',split:'bg-cyan-500/20 text-cyan-300',merge:'bg-amber-500/20 text-amber-300',done:'bg-emerald-500/20 text-emerald-300'};
+  $('phase').className='font-semibold px-3 py-1 rounded-full '+pc[s.phase];
+  $('phase').textContent=t.phase[s.phase];
+  $('stepno').textContent=`${t.step} ${idx+1} / ${steps.length}`;
+  $('seek').max=steps.length-1;$('seek').value=idx;
+  $('msg').textContent=s.m[lang];
+  $('counts').innerHTML=Object.keys(t.c).map(k=>`<div class="bg-white/5 rounded-xl p-2 border border-white/10"><div class="text-xs text-slate-400">${t.c[k]}</div><div class="font-semibold">${s.c[k]} / ${tot[k]}</div></div>`).join('');
+}
+function mk(k){
+  const R=m=>1+Math.floor(Math.random()*m), base=[1,2,3,4,5,6,7,8];
+  if(k==='sorted')return base;
+  if(k==='rev')return base.slice().reverse();
+  if(k==='dup')return base.map(()=>R(4));
+  if(k==='part'){[R(3)-1,3+R(3)].forEach(i=>{[base[i],base[i+1]]=[base[i+1],base[i]];});return base;}
+  return base.map(()=>R(30));
+}
+function buildPats(){
+  const t=tr().pat;
+  $('pats').innerHTML=Object.keys(t).map(k=>`<button data-k="${k}" class="btn text-xs" style="padding:.25rem .65rem">${t[k]}</button>`).join('');
+}
+function cmpRender(){
+  if(!curV.length)return;
+  const t=tr(), nm={temp:'1 · Temp arrays',aux:'2 · Reusable buffer',bu:'3 · Bottom-up',opt:'4 · Optimized',nat:'5 · Natural',ll:'6 · Linked list'};
+  const a=$('cmpA').value,b=$('cmpB').value, A=run(curV,a,'seq').pop().c, B=run(curV,b,'seq').pop().c;
+  const rows=Object.keys(t.c).map(k=>{const x=A[k],y=B[k],g='text-emerald-300 font-semibold';
+    return `<tr class="border-t border-white/10"><td class="py-1 pr-2 text-slate-400">${t.c[k]}</td><td class="text-center ${x<y?g:''}">${x}</td><td class="text-center ${y<x?g:''}">${y}</td></tr>`}).join('');
+  $('cmpTbl').innerHTML=`<table class="w-full text-sm"><tr class="text-slate-300"><th></th><th>${nm[a]}</th><th>${nm[b]}</th></tr>${rows}</table>`;
+  $('cmpNote').textContent=t.cmpNote;
+  const on=$('predOn').checked;
+  $('cmpTbl').style.filter=(on&&pick===null)?'blur(7px)':'';
+  $('predBox').classList.toggle('hidden',!on);
+  $('t-predOn').textContent=t.predOn;$('predQ').textContent=t.predQ;
+  $('predBtns').innerHTML=[['a',nm[a]],['b',nm[b]],['s',t.same]].map(([k,l])=>`<button data-k="${k}" class="btn text-sm ${pick===k?'primary':''}">${l}</button>`).join('');
+  const win=A.wr<B.wr?'a':B.wr<A.wr?'b':'s';
+  $('predFb').textContent=pick===null?'':(pick===win?t.right:t.wrong)+' '+t.fb(nm[a],A.wr,nm[b],B.wr);
+}
+function texts(){
+  const t=tr(),ap=$('approach').value;
+  $('t-title').textContent=t.title;$('t-approach').textContent=t.approach;$('load').textContent=t.load;$('rand').textContent=t.rand;
+  $('t-aux').textContent=t.aux;$('t-counts').textContent=t.counts;$('t-note').textContent=t.note;
+  $('purpose').textContent=t.purpose[ap];$('t-why').textContent=t.whyT;$('t-cmp').textContent=t.cmpT;cmpRender();buildPats();$('t-view').textContent=t.viewT;$('view').options[0].textContent=t.seq;$('view').options[1].textContent=t.conc;$('viewbox').classList.toggle('hidden',ap==='bu'||ap==='nat');$('viewnote').textContent=$('view').value==='conc'?t.viewNote:'';$('why').textContent=t.why;$('cx').textContent=t.cx[ap];
+  $('play').textContent=timer?t.pause:t.play;$('lang').textContent=lang==='en'?'বাংলা':'English';
+  $('err').textContent=$('err').dataset.on?t.err:'';
+}
+
+/* ---- controls ---- */
+function stop(){clearInterval(timer);timer=null;$('play').textContent=tr().play;}
+function tick(){if(idx<steps.length-1){idx++;render();}else stop();}
+function load(){
+  stop();
+  const v=$('inp').value.split(',').map(x=>x.trim()).filter(x=>x!=='').map(Number);
+  if(v.length<2||v.length>12||v.some(x=>!Number.isInteger(x))){$('err').dataset.on=1;texts();return;}
+  delete $('err').dataset.on;
+  steps=run(v,$('approach').value,$('view').value);idx=0;curV=v;pick=null;texts();build();render();
+}
+$('load').onclick=load;
+$('approach').onchange=load;
+$('view').onchange=load;
+$('rand').onclick=()=>{const n=6+Math.floor(Math.random()*3);$('inp').value=Array.from({length:n},()=>Math.floor(Math.random()*30)+1).join(', ');load();};
+$('next').onclick=()=>{stop();if(idx<steps.length-1)idx++;render();};
+$('prev').onclick=()=>{stop();if(idx>0)idx--;render();};
+$('restart').onclick=()=>{stop();idx=0;render();};
+$('play').onclick=()=>{if(timer){stop();return;}if(idx>=steps.length-1)idx=0;$('play').textContent=tr().pause;timer=setInterval(tick,+$('speed').value);};
+$('speed').onchange=()=>{if(timer){clearInterval(timer);timer=setInterval(tick,+$('speed').value);}render();};
+$('lang').onclick=()=>{lang=lang==='en'?'bn':'en';texts();render();};
+window.addEventListener('resize',()=>{build();render();});
+document.addEventListener('keydown',e=>{if(['INPUT','SELECT'].includes(e.target.tagName))return;
+  if(e.key==='ArrowRight')$('next').click();if(e.key==='ArrowLeft')$('prev').click();if(e.key===' '){e.preventDefault();$('play').click();}});
+$('seek').oninput=e=>{stop();idx=+e.target.value;render();};
+$('cmpA').innerHTML=$('cmpB').innerHTML=$('approach').innerHTML;$('cmpA').value='temp';$('cmpB').value='opt';
+$('cmpA').onchange=$('cmpB').onchange=()=>{pick=null;cmpRender();};
+$('predOn').onchange=cmpRender;
+$('predBtns').onclick=e=>{const k=e.target.dataset.k;if(k){pick=k;cmpRender();}};
+$('pats').onclick=e=>{const k=e.target.dataset.k;if(k){$('inp').value=mk(k).join(', ');load();}};
+load();
+</script>
+</body>
+</html>
